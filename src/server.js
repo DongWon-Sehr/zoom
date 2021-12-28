@@ -11,7 +11,7 @@ app.use("/public", express.static(__dirname + "/public")); // create public url 
 app.get("/", (_,res) => res.render("home")); // route handler
 app.get("/*", (_,res) => res.redirect("/"));
 
-const handleListen = () => console.log(`Listening to http://localhost:3000`);
+const handleListen = () => console.log(`Listening to http://localhost:3001`);
 // app.listen("3000", handleListen);
 
 const server = http.createServer(app); // create http server
@@ -24,11 +24,32 @@ const convertBufferToString = data => {
 	return result;
 };
 
+const sockets = [];
+
 wss.on("connection", (socket) => {
 	console.log("Connected to Client ✅");
+	sockets.push(socket);
+	socket["nickname"] = "Anonymous";
 	socket.on("close", () => console.log("Disconnected from the Client ❌"));
-	socket.on("message", (message) => console.log( convertBufferToString(message) ));
-	socket.send("hello from the server!!");
+	socket.on("message", (message) => {
+		message = convertBufferToString(message);
+		message = JSON.parse(message);
+		console.log(message);
+
+		switch (message.type) {
+			case "new message":
+				console.log("new message type");
+				sockets.forEach(aSocket => 
+					aSocket.send(`${socket.nickname}: ${message.payload}`));
+				break;
+			case "nickname":
+				console.log("nickname type");
+				socket["nickname"] = message.payload;
+				socket.send(`Nickname saved as ${message.payload}`);
+				break;
+		}
+	});
+	socket.send("Connected to Server ✅");
 });
 
-server.listen(3000, handleListen);
+server.listen(3001, handleListen);
