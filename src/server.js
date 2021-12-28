@@ -1,5 +1,6 @@
 import express from "express";
 import http from "http";
+import { SocketAddress } from "net";
 import WebSocket from "ws";
 
 const app = express();
@@ -17,8 +18,17 @@ const server = http.createServer(app); // create http server
 
 const wss = new WebSocket.Server({ server }); // create WebSocket server on the http server
 
+const convertBufferToString = data => {
+	const bufferOriginal = Buffer.from(data);
+	const result = bufferOriginal.toString('utf8');
+	return result;
+};
+
 wss.on("connection", (socket) => {
-	console.log(socket);
+	console.log("Connected to Client ✅");
+	socket.on("close", () => console.log("Disconnected from the Client ❌"));
+	socket.on("message", (message) => console.log( convertBufferToString(message) ));
+	socket.send("hello from the server!!");
 });
 
 server.listen(3000, handleListen);
