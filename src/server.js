@@ -1,6 +1,5 @@
 import express from "express";
 import http from "http";
-import { SocketAddress } from "net";
 import WebSocket from "ws";
 
 const app = express();
@@ -34,16 +33,13 @@ wss.on("connection", (socket) => {
 	socket.on("message", (message) => {
 		message = convertBufferToString(message);
 		message = JSON.parse(message);
-		console.log(message);
 
 		switch (message.type) {
 			case "new message":
-				console.log("new message type");
 				sockets.forEach(aSocket => 
 					aSocket.send(`${socket.nickname}: ${message.payload}`));
 				break;
 			case "nickname":
-				console.log("nickname type");
 				socket["nickname"] = message.payload;
 				socket.send(`Nickname saved as ${message.payload}`);
 				break;
