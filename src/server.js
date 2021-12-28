@@ -1,4 +1,6 @@
 import express from "express";
+import http from "http";
+import WebSocket from "ws";
 
 const app = express();
 
@@ -9,4 +11,10 @@ app.get("/", (_,res) => res.render("home")); // route handler
 app.get("/*", (_,res) => res.redirect("/"));
 
 const handleListen = () => console.log(`Listening to http://localhost:3000`);
-app.listen("3000", handleListen);
+// app.listen("3000", handleListen);
+
+const server = http.createServer(app); // create http server
+
+const wss = new WebSocket.Server({ server }); // create WebSocket server on the http server
+
+server.listen(3000, handleListen);
