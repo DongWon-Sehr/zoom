@@ -15,6 +15,9 @@ const handleListen = () => console.log(`Listening to http://localhost:3001`);
 
 const server = http.createServer(app); // create http server
 
+
+
+/*
 const wss = new WebSocket.Server({ server }); // create WebSocket server on the http server
 
 const convertBufferToString = data => {
@@ -47,5 +50,7 @@ wss.on("connection", (socket) => {
 	});
 	socket.send("Connected to Server ✅");
 });
+*/
+
 
 server.listen(3001, handleListen);
