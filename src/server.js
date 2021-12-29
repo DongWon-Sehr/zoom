@@ -11,7 +11,7 @@ app.use("/public", express.static(__dirname + "/public")); // create public url 
 app.get("/", (_,res) => res.render("home")); // route handler
 app.get("/*", (_,res) => res.redirect("/"));
 
-const handleListen = () => console.log(`Listening to http://localhost:3001`);
+const handleListen = () => console.log(`Listening to http://localhost:3000`);
 // app.listen("3000", handleListen);
 
 const httpServer = http.createServer(app); // create http server
@@ -19,7 +19,25 @@ const httpServer = http.createServer(app); // create http server
 const wsServer = SocketIO(httpServer);
 
 wsServer.on("connection", socket => {
-	socket.on("enter_room", (msg) => console.log(msg));
+	socket.onAny((event) => {
+		console.log(`Socket Event: ${event}`);
+	});
+	socket.on("enter_room", (roomName, done) => {
+		console.log(socket.rooms);
+		socket.join(roomName);
+		done();
+		console.log(`Room Name: ${roomName}`);
+		socket.to(roomName).emit("welcome");
+	});
+	socket.on("disconnecting", () => {
+		socket.rooms.forEach(room => {
+			socket.to(room).emit("bye");
+		});
+	})
+	socket.on("new_message", (msg, roomName, done) => {
+		socket.to(roomName).emit("new_message", msg);
+		done();
+	});
 });
 
-httpServer.listen(3001, handleListen);
+httpServer.listen(3000, handleListen);
