@@ -1,8 +1,6 @@
 import express from "express";
 import http from "http";
-import {instrument} from "@socket.io/admin-ui";
-import {Server} from "socket.io";
-// import WebSocket from "ws";
+import SocketIO from "socket.io";
 
 const app = express();
 
@@ -13,20 +11,9 @@ app.get("/", (_,res) => res.render("home")); // route handler
 app.get("/*", (_,res) => res.redirect("/"));
 
 const handleListen = () => console.log(`Listening to http://localhost:3000`);
-// app.listen("3000", handleListen);
 
 const httpServer = http.createServer(app); // create http server
-
-const wsServer = new Server(httpServer, {
-	cors: {
-		origin: ["https://admin.socket.io"],
-		credentials: true,
-	},
-});
-
-instrument(wsServer, {
-	auth: false,
-});
+const wsServer = SocketIO(httpServer);
 
 function getPublicRooms() {
 	const {
@@ -48,32 +35,40 @@ function getPublicRooms() {
 	return publicRooms;
 }
 
-function getRoomSize(roomname) {
-	return wsServer.sockets.adapter.rooms.get(roomname)?.size;
+function getRoomSize(roomTitle) {
+	return wsServer.sockets.adapter.rooms.get(roomTitle)?.size;
 }
 
 wsServer.on("connection", socket => {
-	
-	socket["nickname"] = "Anonymous";
-	
-	socket.onAny((event) => {
-		console.log(wsServer.sockets.adapter);
-		console.log(`Socket Event: ${event}`);
+
+	socket["userId"] = "Anonymous";
+
+	socket.on("join_room", (i_roomTitle, i_userId, done) => {
+		socket["userId"] = i_userId; // set userId to this socket
+		socket.join(i_roomTitle); // join the room
+		done(i_roomTitle, getRoomSize(i_roomTitle)); // ignite startCall() function @app.js
+		
+		socket.to(i_roomTitle).emit("join_noti", i_userId, getRoomSize(i_roomTitle)); // notify if someone joined
+		
+		wsServer.sockets.emit("room_change", getPublicRooms()); // update room list
+		
 	});
 
-	socket.on("enter_room", (roomName, nickName, done) => {
-		console.log(socket.rooms);
-		socket["nickname"] = nickName;
-		socket.join(roomName);
-		done(roomName, getRoomSize(roomName));
-		console.log(`Room Name: ${roomName}`);
-		socket.to(roomName).emit("welcome", socket.nickname, getRoomSize(roomName));
-		wsServer.sockets.emit("room_change", getPublicRooms());
+	socket.on("offer", (i_offer, i_roomTitle) => {
+		socket.to(i_roomTitle).emit("offer", i_offer);
+	});
+
+	socket.on("answer", (i_answer, i_roomTitle) => {
+		socket.to(i_roomTitle).emit("answer", i_answer);
+	});
+
+	socket.on("ice", (i_ice, i_roomTitle) => {
+		socket.to(i_roomTitle).emit("ice", i_ice);
 	});
 
 	socket.on("disconnecting", () => {
 		socket.rooms.forEach(room => {
-			socket.to(room).emit("bye", socket.nickname, getRoomSize(room) - 1 );
+			socket.to(room).emit("leave_noti", socket.userId, getRoomSize(room) - 1 );
 		});
 	});
 	
@@ -81,10 +76,10 @@ wsServer.on("connection", socket => {
 		wsServer.sockets.emit("room_change", getPublicRooms());
 	});
 
-	socket.on("new_message", (msg, roomName, done) => {
-		socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
-		done();
-	});
+	// socket.on("new_message", (i_msg, i_roomTitle, done) => {
+	// 	socket.to(i_roomTitle).emit("new_message", `${socket.userId}: ${i_msg}`);
+	// 	done();
+	// });
 });
 
 httpServer.listen(3000, handleListen);
