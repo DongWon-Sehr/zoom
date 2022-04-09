@@ -8,4 +8,4 @@ Zoom Clone Coding with using NodeJS, WebRTC and Websockets.
 - Text chat
 - Log-in
 - Create a chat room
-- System notification (join/left)
+- System notification (join/left/user count)
